@@ -36,32 +36,36 @@
     <article class="card">
       <h2>1. Problem Solved &amp; What I Built</h2>
       <p>
-        Network-level packet delivery and link-layer error checks do not stop application-layer abuse such as burst flooding, unauthorized object access, or malformed payloads. This policy engine evaluates requests at the edge and rejects invalid or unauthorized traffic by default.
+        Transport reliability and link-layer checks do not stop application-layer abuse—such as burst floods saturating edge capacity, unauthorized cross-user access to resources, or malformed payloads reaching backend handlers. This policy engine evaluates requests at the edge boundary and rejects invalid, ambiguous, or unauthorized traffic by default.
       </p>
       <p>
-        <strong>What I built:</strong> I implemented <code>EdgePolicy.java</code> (<code>allowRateLimit</code>, <code>checkAuthAndBola</code>, <code>validateSchema</code>, and <code>evaluate</code>). <strong>Provided scaffold:</strong> <code>Main.java</code> (trace parser, token/bucket setup, and result formatter), <code>Makefile</code> (<code>javac -Xlint:all -Werror</code> build and <code>make test</code>), and the five traces in <code>test_tr/</code> were provided by the course.
+        <strong>What I implemented:</strong> <code>EdgePolicy.java</code> (<code>allowRateLimit</code>, <code>checkAuthAndBola</code>, <code>validateSchema</code>, and <code>evaluate</code>).
+      </p>
+      <hr>
+      <p>
+        <strong>Provided harness:</strong> <code>Main.java</code> (trace parser, token-bucket setup, and output formatting), the <code>Makefile</code> (<code>javac -Xlint:all -Werror</code> build and trace test target), and the five trace fixtures in <code>test_tr/</code>.
       </p>
     </article>
 
     <article class="card">
       <h2>2. Architecture, Tradeoffs &amp; Invariants</h2>
       <p>
-        Requests run sequentially through a short-circuiting three-stage pipeline so rejected traffic stops immediately:
+        <code>evaluate</code> runs requests sequentially through a short-circuiting three-stage pipeline so invalid traffic exits before touching later checks:
       </p>
       <ol>
-        <li><strong>Per-IP Token-Bucket Rate Limiting (<code>429 RATE_LIMIT</code>):</strong> Each client IP gets an independent token bucket starting full, refilling by <code>elapsedSec * refillPerSec</code> up to capacity, and spending <code>1.0</code> token on pass. Per-IP buckets isolate clients so one noisy IP cannot starve others.</li>
-        <li><strong>Fail-Closed Auth &amp; BOLA Authorization (<code>401 UNAUTHENTICATED</code>, <code>403 UNKNOWN_ROUTE</code>, <code>403 BOLA_FORBIDDEN</code>):</strong> Missing, <code>-</code>, or unknown tokens return <code>401 UNAUTHENTICATED</code>. Paths must start with <code>/</code> and match valid <code>users</code> or <code>orders</code> routes with a non-empty owner segment, or return <code>403 UNKNOWN_ROUTE</code>. Matching owners or <code>admin</code> callers pass; mismatched non-admin owners fail with <code>403 BOLA_FORBIDDEN</code>.</li>
-        <li><strong>Positive-Allowlist Schema Validation (<code>400 SCHEMA_INVALID</code>):</strong> Instead of denylist matching, <code>GET</code> requires an empty or <code>-</code> body, and <code>POST /orders/&lt;owner&gt;</code> requires semicolon-separated <code>key=value</code> fields with no duplicate or extra keys and strictly <code>item</code> (1–32 chars in <code>[A-Za-z0-9_-]</code>) and <code>amount</code> (integer from <code>1</code> to <code>10000</code>).</li>
+        <li><strong>Per-IP Token-Bucket Rate Limiting (<code>429 RATE_LIMIT</code>):</strong> Each client IP has an independent bucket initialized at full capacity, refilling by <code>elapsedSec * refillPerSec</code> up to capacity, and consuming <code>1.0</code> token on pass. Evaluating rate limiting first with per-IP buckets prevents one noisy IP from starving others and avoids spending auth/parsing work on floods, at the tradeoff that a flood request can consume a token even if it would later fail validation.</li>
+        <li><strong>Fail-Closed Auth &amp; BOLA Authorization (<code>401 UNAUTHENTICATED</code>, <code>403 UNKNOWN_ROUTE</code>, <code>403 BOLA_FORBIDDEN</code>):</strong> Missing, <code>-</code>, or unknown tokens fail closed with <code>401 UNAUTHENTICATED</code>. Paths must begin with <code>/</code> and match a valid <code>users</code> or <code>orders</code> route with a non-empty owner segment, or fail with <code>403 UNKNOWN_ROUTE</code>. Matching owners or <code>admin</code> callers pass; mismatched non-admin owners fail with <code>403 BOLA_FORBIDDEN</code>.</li>
+        <li><strong>Positive-Allowlist Schema Validation (<code>400 SCHEMA_INVALID</code>):</strong> Rather than denylisting known bad strings, <code>GET</code> requires an empty or <code>-</code> body, and <code>POST /orders/&lt;owner&gt;</code> requires semicolon-delimited <code>key=value</code> fields with no duplicate or unknown keys and strictly <code>item</code> (1–32 chars in <code>[A-Za-z0-9_-]</code>) and <code>amount</code> (integer from <code>1</code> to <code>10000</code>). Positive allowlisting avoids blind spots caused by incomplete denylists.</li>
       </ol>
     </article>
 
     <article class="card">
       <h2>3. Verification &amp; Edge Cases</h2>
       <p>
-        Compiled cleanly with <code>javac -Xlint:all -Werror</code> and verified across all five traces in <code>test_tr/</code> (<code>clean.trace</code>, <code>ratelimit.trace</code>, <code>bola.trace</code>, <code>schema.trace</code>, and <code>mixed.trace</code>) via <code>make test</code>.
+        Built with <code>javac -Xlint:all -Werror</code> (zero compiler warnings) and verified across all five scenarios in <code>test_tr/</code> (<code>clean.trace</code>, <code>ratelimit.trace</code>, <code>bola.trace</code>, <code>schema.trace</code>, and <code>mixed.trace</code>).
       </p>
       <p>
-        Key edge cases verified include strict stage precedence (a client below <code>1.0</code> token receives <code>429 RATE_LIMIT</code> even on a valid route/body), rejecting duplicate or unknown fields in <code>POST /orders/&lt;owner&gt;</code>, returning <code>"-"</code> as the user ID on denied decisions, and allowing <code>admin</code> access while blocking cross-owner non-admin requests.
+        <strong>Boundary &amp; failure cases checked:</strong> Verified strict stage ordering so a client with fewer than <code>1.0</code> token receives <code>429 RATE_LIMIT</code> even on a valid route and payload; checked that duplicate or extra keys in <code>POST /orders/&lt;owner&gt;</code> are rejected rather than overwritten; confirmed <code>admin</code> callers pass ownership checks while cross-owner non-admin requests fail with <code>403 BOLA_FORBIDDEN</code>; and verified denied responses omit authenticated user attribution (<code>-</code>) consistently.
       </p>
     </article>
 
@@ -74,7 +78,7 @@ DENY req=2 ip=10.0.0.9 method=GET path=/users/alice/profile status=429 reason=RA
 ALLOW req=3 ip=10.0.0.2 user=bob method=POST path=/orders/bob status=200
 STATS total=4 allowed=1 denied=3 rate_limited=1 auth_denied=1 schema_denied=1</code></pre>
       <p>
-        <strong>Next improvements:</strong> Move route and field schemas into externalized configuration rather than hardcoded rules, and add explicit thread synchronization if concurrent request evaluation is introduced.
+        <strong>Next improvements:</strong> Move route rules and payload schemas into externalized configuration so policies can be updated and audited without recompiling Java code, and add explicit synchronization if <code>EdgePolicy</code> is called concurrently across multiple worker threads.
       </p>
     </article>
   </main>
