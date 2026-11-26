@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mason Abbott — Computer Engineering Portfolio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <nav>
+        <a class="brand" href="index.html">Mason Abbott</a>
+        <div class="links">
+          <a href="#projects">Projects</a>
+          <a href="#skills">Skills</a>
+          <a href="https://github.com/Mason-Abbott">GitHub</a>
+          <a href="mailto:mabbott@csus.edu">Email</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h1>Mason Abbott</h1>
+      <p class="lead">
+        Computer Engineering student at California State University, Sacramento focusing on network protocols, systems software, and embedded microcontrollers. I build and verify software where protocol correctness, failure recovery, and deterministic behavior matter.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="#projects">Read Case Studies</a>
+        <a class="btn" href="https://github.com/Mason-Abbott">GitHub Profile</a>
+        <a class="btn" href="mailto:mabbott@csus.edu">mabbott@csus.edu</a>
+      </div>
+    </section>
+
+    <section id="projects">
+      <h2>Featured Engineering Projects</h2>
+
+      <article class="card">
+        <h3><a href="projects/edge-policy-engine.html">Edge API Security Policy Engine (Java)</a></h3>
+        <p class="meta">Java 21 &bull; Fail-Closed Validation &bull; Token-Bucket Rate Limiting &bull; Trace Verification</p>
+        <p>
+          Policy enforcement engine handling schema checks, authorization validation, and rate limiting across adversarial traces, compiled cleanly with strict warning flags.
+        </p>
+        <p>
+          <a href="projects/edge-policy-engine.html">Read the technical case study &rarr;</a> &nbsp;|&nbsp;
+          <a href="https://github.com/Mason-Abbott/Edge-API-Security-Policy-Engine">View source on GitHub &rarr;</a>
+        </p>
+      </article>
+
+      <article class="card">
+        <h3><a href="projects/link-state-routing.html">Dynamic Link-State Routing &amp; Forwarding Controller (Java)</a></h3>
+        <p class="meta">Java 21 &bull; Link-State Routing &bull; Atomic Forwarding Snapshots &bull; Partition Recovery</p>
+        <p>
+          Routing controller and forwarding table builder evaluated under link drops, network partitions, convergence recovery, and wire-framing simulation traces.
+        </p>
+        <p>
+          <a href="projects/link-state-routing.html">Read the technical case study &rarr;</a> &nbsp;|&nbsp;
+          <a href="https://github.com/Mason-Abbott/link-state-routing-engine">View source on GitHub &rarr;</a>
+        </p>
+      </article>
+    </section>
+
+    <section id="skills">
+      <h2>Technical Background</h2>
+      <ul>
+        <li><strong>Languages &amp; Tooling:</strong> Java (Java 21, <code>-Xlint:all -Werror</code>), C (<code>arm-none-eabi-gcc</code>), Python 3, x86 assembly, Git, Linux/WSL, MobaXterm</li>
+        <li><strong>Networking &amp; Embedded:</strong> TCP sliding-window &amp; congestion control, link-state routing, edge security policies, STM32F303x8 (Cortex-M4) state machines &amp; sensor I/O</li>
+        <li><strong>Certifications:</strong> CompTIA Network+ ce, CompTIA A+ ce, MOS Excel Associate, MOS Word Associate</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      &copy; 2026 Mason Abbott &bull; <a href="https://github.com/Mason-Abbott">GitHub</a> &bull; <a href="mailto:mabbott@csus.edu">mabbott@csus.edu</a>
+    </div>
+  </footer>
+</body>
+</html>

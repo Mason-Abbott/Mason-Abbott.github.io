@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edge API Security Policy Engine — Mason Abbott</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <nav>
+        <a class="brand" href="../index.html">Mason Abbott</a>
+        <div class="links">
+          <a href="../index.html#projects">Projects</a>
+          <a href="../index.html#skills">Skills</a>
+          <a href="https://github.com/Mason-Abbott/Edge-API-Security-Policy-Engine">GitHub Repo</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h1>Edge API Security Policy Engine</h1>
+      <p class="meta">Java 21 &bull; Fail-Closed Pipeline &bull; Per-IP Token Bucket &bull; BOLA &amp; Schema Validation</p>
+      <p class="lead">
+        Fail-closed request policy evaluator enforcing per-IP rate limiting, token authentication and object-ownership checks, and positive-allowlist payload validation before traffic reaches downstream services.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/Mason-Abbott/Edge-API-Security-Policy-Engine">View Repository on GitHub</a>
+        <a class="btn" href="../index.html#projects">Back to Projects</a>
+      </div>
+    </section>
+
+    <article class="card">
+      <h2>1. Problem Solved &amp; What I Built</h2>
+      <p>
+        Network-level packet delivery and link-layer error checks do not stop application-layer abuse such as burst flooding, unauthorized object access, or malformed payloads. This policy engine evaluates requests at the edge and rejects invalid or unauthorized traffic by default.
+      </p>
+      <p>
+        <strong>What I built:</strong> I implemented <code>EdgePolicy.java</code> (<code>allowRateLimit</code>, <code>checkAuthAndBola</code>, <code>validateSchema</code>, and <code>evaluate</code>). <strong>Provided scaffold:</strong> <code>Main.java</code> (trace parser, token/bucket setup, and result formatter), <code>Makefile</code> (<code>javac -Xlint:all -Werror</code> build and <code>make test</code>), and the five traces in <code>test_tr/</code> were provided by the course.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>2. Architecture, Tradeoffs &amp; Invariants</h2>
+      <p>
+        Requests run sequentially through a short-circuiting three-stage pipeline so rejected traffic stops immediately:
+      </p>
+      <ol>
+        <li><strong>Per-IP Token-Bucket Rate Limiting (<code>429 RATE_LIMIT</code>):</strong> Each client IP gets an independent token bucket starting full, refilling by <code>elapsedSec * refillPerSec</code> up to capacity, and spending <code>1.0</code> token on pass. Per-IP buckets isolate clients so one noisy IP cannot starve others.</li>
+        <li><strong>Fail-Closed Auth &amp; BOLA Authorization (<code>401 UNAUTHENTICATED</code>, <code>403 UNKNOWN_ROUTE</code>, <code>403 BOLA_FORBIDDEN</code>):</strong> Missing, <code>-</code>, or unknown tokens return <code>401 UNAUTHENTICATED</code>. Paths must start with <code>/</code> and match valid <code>users</code> or <code>orders</code> routes with a non-empty owner segment, or return <code>403 UNKNOWN_ROUTE</code>. Matching owners or <code>admin</code> callers pass; mismatched non-admin owners fail with <code>403 BOLA_FORBIDDEN</code>.</li>
+        <li><strong>Positive-Allowlist Schema Validation (<code>400 SCHEMA_INVALID</code>):</strong> Instead of denylist matching, <code>GET</code> requires an empty or <code>-</code> body, and <code>POST /orders/&lt;owner&gt;</code> requires semicolon-separated <code>key=value</code> fields with no duplicate or extra keys and strictly <code>item</code> (1–32 chars in <code>[A-Za-z0-9_-]</code>) and <code>amount</code> (integer from <code>1</code> to <code>10000</code>).</li>
+      </ol>
+    </article>
+
+    <article class="card">
+      <h2>3. Verification &amp; Edge Cases</h2>
+      <p>
+        Compiled cleanly with <code>javac -Xlint:all -Werror</code> and verified across all five traces in <code>test_tr/</code> (<code>clean.trace</code>, <code>ratelimit.trace</code>, <code>bola.trace</code>, <code>schema.trace</code>, and <code>mixed.trace</code>) via <code>make test</code>.
+      </p>
+      <p>
+        Key edge cases verified include strict stage precedence (a client below <code>1.0</code> token receives <code>429 RATE_LIMIT</code> even on a valid route/body), rejecting duplicate or unknown fields in <code>POST /orders/&lt;owner&gt;</code>, returning <code>"-"</code> as the user ID on denied decisions, and allowing <code>admin</code> access while blocking cross-owner non-admin requests.
+      </p>
+    </article>
+
+    <article class="card">
+      <h2>4. Evidence &amp; Next Improvements</h2>
+      <pre><code>java Main test_tr/mixed.trace
+DENY req=0 ip=10.0.0.9 method=GET path=/users/bob/profile status=403 reason=BOLA_FORBIDDEN
+DENY req=1 ip=10.0.0.9 method=POST path=/orders/alice status=400 reason=SCHEMA_INVALID
+DENY req=2 ip=10.0.0.9 method=GET path=/users/alice/profile status=429 reason=RATE_LIMIT
+ALLOW req=3 ip=10.0.0.2 user=bob method=POST path=/orders/bob status=200
+STATS total=4 allowed=1 denied=3 rate_limited=1 auth_denied=1 schema_denied=1</code></pre>
+      <p>
+        <strong>Next improvements:</strong> Move route and field schemas into externalized configuration rather than hardcoded rules, and add explicit thread synchronization if concurrent request evaluation is introduced.
+      </p>
+    </article>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      &copy; 2026 Mason Abbott &bull; <a href="../index.html">Home</a> &bull; <a href="https://github.com/Mason-Abbott/Edge-API-Security-Policy-Engine">GitHub</a>
+    </div>
+  </footer>
+</body>
+</html>
